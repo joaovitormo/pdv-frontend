@@ -21,7 +21,7 @@ export const useCart = () => {
     });
   };
 
-  const total = items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
+  const total = items.reduce((acc, item) => acc + (item.quantity * (typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) : item.unitPrice)), 0);
 
   return { items, addItem, total, setItems };
 };
