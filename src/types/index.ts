@@ -3,7 +3,7 @@ export interface Product {
   sku: string;
   name: string;
   description: string;
-  price: string; // A API retorna como string para precisão decimal
+  price: string; 
   stockQuantity: number;
   categoryId: number;
 }
@@ -28,7 +28,7 @@ export interface SaleItem {
   productId: number;
   quantity: number;
   unitPrice: number | string;
-  discount?: number; // Desconto em valor absoluto
+  discount?: number; 
   subtotal?: string;
   saleId?: number;
   product?: Product;

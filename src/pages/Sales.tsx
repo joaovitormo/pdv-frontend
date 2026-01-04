@@ -4,6 +4,9 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import api from '../api/api';
 import { Plus, Eye, Trash2, Search } from 'lucide-react';
+import { ResponsiveTable } from '../components/ResponsiveTable';
+
+const ITEMS_PER_PAGE = 10;
 
 interface Sale {
   id: number;
@@ -26,6 +29,7 @@ export const Sales = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadSales();
@@ -77,6 +81,14 @@ export const Sales = () => {
     const matchesStatus = !statusFilter || s.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredSales.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedSales = filteredSales.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   if (loading && sales.length === 0) {
     return (
@@ -190,67 +202,76 @@ export const Sales = () => {
         )}
 
         {/* Sales Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {filteredSales.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Nenhuma venda encontrada
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Cliente</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Data</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Pagamento</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSales.map((sale) => (
-                  <tr key={sale.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">#{sale.id}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{sale.customer?.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {new Date(sale.date).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">R$ {sale.total}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{sale.paymentMethod}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        sale.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                        sale.status === 'CANCELED' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {sale.status === 'COMPLETED' ? 'Completa' :
-                         sale.status === 'CANCELED' ? 'Cancelada' : 'Aberta'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm space-x-2 flex">
-                      <button
-                        onClick={() => handleViewDetails(sale.id)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                      >
-                        <Eye size={18} />
-                      </button>
-                      {sale.status !== 'CANCELED' && (
-                        <button
-                          onClick={() => handleDelete(sale.id)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <ResponsiveTable
+          columns={[
+            {
+              key: 'id',
+              label: 'ID',
+              render: (value) => `#${value}`,
+            },
+            {
+              key: 'customer',
+              label: 'Cliente',
+              render: (value: any) => value?.name || '-',
+            },
+            {
+              key: 'date',
+              label: 'Data',
+              render: (value) => new Date(value).toLocaleDateString('pt-BR'),
+            },
+            {
+              key: 'total',
+              label: 'Total',
+              render: (value) => `R$ ${value}`,
+            },
+            { key: 'paymentMethod', label: 'Pagamento' },
+            {
+              key: 'status',
+              label: 'Status',
+              render: (value) => {
+                const statusMap: Record<string, { bg: string; text: string; label: string }> = {
+                  'COMPLETED': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completa' },
+                  'CANCELED': { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelada' },
+                  'OPEN': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Aberta' },
+                };
+                const status = statusMap[value] || statusMap['OPEN'];
+                return (
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.bg} ${status.text}`}>
+                    {status.label}
+                  </span>
+                );
+              },
+            },
+          ]}
+          data={paginatedSales}
+          actions={[
+            {
+              label: 'Ver Detalhes',
+              icon: <Eye size={18} />,
+              onClick: (sale) => handleViewDetails((sale as Sale).id),
+              className: 'text-blue-600 hover:bg-blue-100',
+            },
+            {
+              label: 'Deletar',
+              icon: <Trash2 size={18} />,
+              onClick: (sale) => {
+                const saleData = sale as Sale;
+                if (saleData.status !== 'CANCELED') {
+                  handleDelete(saleData.id);
+                }
+              },
+              className: 'text-red-600 hover:bg-red-100',
+              condition: (sale) => (sale as Sale).status !== 'CANCELED',
+            },
+          ]}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+          getRowKey={(sale) => (sale as Sale).id}
+          emptyMessage="Nenhuma venda encontrada"
+        />
       </div>
     </Layout>
   );
 };
-Layout

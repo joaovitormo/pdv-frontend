@@ -2,9 +2,12 @@ import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
+import { ResponsiveTable } from '../components/ResponsiveTable';
 import api from '../api/api';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import type { Product } from '../types/index';
+
+const ITEMS_PER_PAGE = 10;
 
 export const Products = () => {
   const { signOut } = useContext(AuthContext);
@@ -15,6 +18,7 @@ export const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -113,6 +117,14 @@ export const Products = () => {
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedProducts = filteredProducts.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   if (loading && products.length === 0) {
     return (
@@ -256,49 +268,43 @@ export const Products = () => {
         )}
 
         {/* Products Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {filteredProducts.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Nenhum produto encontrado
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">SKU</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Nome</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Preço</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Estoque</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.sku}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">R$ {product.price}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{product.stockQuantity}</td>
-                    <td className="px-6 py-4 text-sm space-x-2 flex">
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <ResponsiveTable
+          columns={[
+            { key: 'sku', label: 'SKU' },
+            { key: 'name', label: 'Nome' },
+            {
+              key: 'price',
+              label: 'Preço',
+              render: (value) => `R$ ${value}`,
+            },
+            {
+              key: 'stockQuantity',
+              label: 'Estoque',
+              className: 'text-center',
+            },
+          ]}
+          data={paginatedProducts}
+          actions={[
+            {
+              label: 'Editar',
+              icon: <Edit size={18} />,
+              onClick: (product) => handleEdit(product as Product),
+              className: 'text-blue-600 hover:bg-blue-100',
+            },
+            {
+              label: 'Deletar',
+              icon: <Trash2 size={18} />,
+              onClick: (product) => handleDelete((product as Product).id),
+              className: 'text-red-600 hover:bg-red-100',
+            },
+          ]}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+          getRowKey={(product) => (product as Product).id}
+          emptyMessage="Nenhum produto encontrado"
+        />
       </div>
     </Layout>
   );

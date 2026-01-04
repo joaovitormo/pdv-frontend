@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Carrega usuário do localStorage ao iniciar
   useEffect(() => {
     const token = localStorage.getItem('@PDV:token');
     const userData = localStorage.getItem('@PDV:user');

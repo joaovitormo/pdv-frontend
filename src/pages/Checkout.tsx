@@ -3,7 +3,7 @@ import { Layout } from '../components/Layout';
 import api from '../api/api';
 import type { Product } from '../types/index';
 import { AuthContext } from '../contexts/AuthContext';
-import { Trash2, Edit2, X } from 'lucide-react';
+import { Trash2, Edit2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CartItem {
   productId: number;
@@ -17,6 +17,8 @@ export const Checkout: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editPrice, setEditPrice] = useState<number>(0);
   const [editDiscount, setEditDiscount] = useState<number>(0);
@@ -24,11 +26,16 @@ export const Checkout: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<string>('CARTAO');
   const { } = useContext(AuthContext);
+  const ITEMS_PER_PAGE = 12;
 
   useEffect(() => {
     loadProducts();
     loadCustomers();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const loadProducts = async () => {
     try {
@@ -110,7 +117,6 @@ export const Checkout: React.FC = () => {
     
     setLoading(true);
     try {
-      // Preparar items para a API (sem name)
       const items = cart.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -144,6 +150,16 @@ export const Checkout: React.FC = () => {
 
   const total = cart.reduce((acc, item) => acc + calculateItemTotal(item), 0);
 
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedProducts = filteredProducts.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
   return (
     <Layout title="Nova Venda">
       <div className="w-full max-w-7xl">
@@ -151,8 +167,17 @@ export const Checkout: React.FC = () => {
           {/* Products Section */}
           <div className="lg:col-span-2">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Produtos</h2>
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Pesquisar por nome, SKU ou descrição..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              {products.map(product => (
+              {paginatedProducts.map(product => (
                 <div 
                   key={product.id} 
                   className="bg-white rounded-lg shadow hover:shadow-lg transition p-4"
@@ -172,7 +197,56 @@ export const Checkout: React.FC = () => {
                   <p className="text-gray-500 text-xs">Estoque: {product.stockQuantity}</p>
                 </div>
               ))}
+              {filteredProducts.length === 0 && (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-gray-500">Nenhum produto encontrado para "{searchTerm}"</p>
+                </div>
+              )}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="text-sm text-gray-600">
+                    Mostrando {startIdx + 1} a {Math.min(startIdx + ITEMS_PER_PAGE, filteredProducts.length)} de {filteredProducts.length} produtos
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+
+                    <div className="flex items-center gap-1 flex-wrap justify-center">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-2 rounded-lg text-sm ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'border border-gray-300 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cart Section */}

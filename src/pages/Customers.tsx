@@ -4,6 +4,9 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import api from '../api/api';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { ResponsiveTable } from '../components/ResponsiveTable';
+
+const ITEMS_PER_PAGE = 10;
 
 interface Customer {
   id: number;
@@ -21,6 +24,7 @@ export const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
     document: '',
@@ -99,6 +103,14 @@ export const Customers = () => {
     c.document.includes(searchTerm) ||
     c.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedCustomers = filteredCustomers.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   if (loading && customers.length === 0) {
     return (
@@ -214,51 +226,36 @@ export const Customers = () => {
         )}
 
         {/* Customers Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {filteredCustomers.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Nenhum cliente encontrado
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Nome</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Documento</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Telefone</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">{customer.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{customer.document}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{customer.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{customer.phone}</td>
-                    <td className="px-6 py-4 text-sm space-x-2 flex">
-                      <button
-                        onClick={() => handleEdit(customer)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <ResponsiveTable
+          columns={[
+            { key: 'name', label: 'Nome' },
+            { key: 'document', label: 'Documento' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Telefone' },
+          ]}
+          data={paginatedCustomers}
+          actions={[
+            {
+              label: 'Editar',
+              icon: <Edit size={18} />,
+              onClick: (customer) => handleEdit(customer as Customer),
+              className: 'text-blue-600 hover:bg-blue-100',
+            },
+            {
+              label: 'Deletar',
+              icon: <Trash2 size={18} />,
+              onClick: (customer) => handleDelete((customer as Customer).id),
+              className: 'text-red-600 hover:bg-red-100',
+            },
+          ]}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+          getRowKey={(customer) => (customer as Customer).id}
+          emptyMessage="Nenhum cliente encontrado"
+        />
       </div>
     </Layout>
   );
 };
-Layout
