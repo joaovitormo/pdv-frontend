@@ -20,7 +20,7 @@ export const Login: React.FC = () => {
 
     try {
       await signIn({ username, password });
-      navigate('/pdv');
+      navigate('/dashboard');
     } catch (err) {
       setLocalError(error || 'Falha no login. Verifique suas credenciais.');
     }
