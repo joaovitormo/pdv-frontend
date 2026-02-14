@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
+import toast from 'react-hot-toast';
 import { Layout } from '../components/Layout';
 import api from '../api/api';
 import type { Product } from '../types/index';
@@ -62,6 +63,7 @@ export const Checkout: React.FC = () => {
       setCart(cart.map(i => 
         i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i
       ));
+      toast.success(`${product.name} - Quantidade aumentada!`);
     } else {
       setCart([...cart, { 
         productId: product.id, 
@@ -70,11 +72,16 @@ export const Checkout: React.FC = () => {
         discount: 0,
         name: product.name 
       }]);
+      toast.success(`${product.name} adicionado ao carrinho!`);
     }
   };
 
   const removeFromCart = (productId: number) => {
+    const item = cart.find(i => i.productId === productId);
     setCart(cart.filter(i => i.productId !== productId));
+    if (item) {
+      toast.success(`${item.name} removido do carrinho!`);
+    }
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -106,12 +113,12 @@ export const Checkout: React.FC = () => {
 
   const handleFinishSale = async () => {
     if (cart.length === 0) {
-      alert('Carrinho vazio!');
+      toast.error('Carrinho vazio!');
       return;
     }
 
     if (!selectedCustomer) {
-      alert('Selecione um cliente!');
+      toast.error('Selecione um cliente!');
       return;
     }
     
@@ -130,13 +137,13 @@ export const Checkout: React.FC = () => {
         status: "COMPLETED"
       };
       await api.post('/sales', data);
-      alert("Venda realizada com sucesso!");
+      toast.success("Venda realizada com sucesso!");
       setCart([]);
       setSelectedCustomer(1);
       setPaymentMethod('CARTAO');
     } catch (err) {
       console.error('Erro ao finalizar venda:', err);
-      alert('Erro ao finalizar venda');
+      toast.error('Erro ao finalizar venda');
     } finally {
       setLoading(false);
     }

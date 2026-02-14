@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import api from '../api/api';
@@ -57,8 +58,10 @@ export const Customers = () => {
     try {
       if (editingId) {
         await api.put(`/customers/${editingId}`, formData);
+        toast.success('Cliente atualizado com sucesso!');
       } else {
         await api.post('/customers', formData);
+        toast.success('Cliente criado com sucesso!');
       }
       setShowForm(false);
       setEditingId(null);
@@ -71,7 +74,7 @@ export const Customers = () => {
       loadCustomers();
     } catch (error) {
       console.error('Erro ao salvar cliente:', error);
-      alert('Erro ao salvar cliente');
+      toast.error('Erro ao salvar cliente');
     }
   };
 
@@ -90,10 +93,11 @@ export const Customers = () => {
     if (confirm('Tem certeza que deseja deletar este cliente?')) {
       try {
         await api.delete(`/customers/${id}`);
+        toast.success('Cliente deletado com sucesso!');
         loadCustomers();
       } catch (error) {
         console.error('Erro ao deletar cliente:', error);
-        alert('Erro ao deletar cliente');
+        toast.error('Erro ao deletar cliente');
       }
     }
   };

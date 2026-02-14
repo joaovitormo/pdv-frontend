@@ -1,10 +1,11 @@
 import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import { ResponsiveTable } from '../components/ResponsiveTable';
-import api from '../api/api';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import api, { uploadProductImage } from '../api/api';
+import { Plus, Edit, Trash2, Search, Upload } from 'lucide-react';
 import type { Product } from '../types/index';
 
 const ITEMS_PER_PAGE = 10;
@@ -19,6 +20,9 @@ export const Products = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -61,18 +65,40 @@ export const Products = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let productId = editingId;
+
       if (editingId) {
         await api.put(`/products/${editingId}`, formData);
+        toast.success('Produto atualizado com sucesso!');
       } else {
-        await api.post('/products', {
+        const response = await api.post('/products', {
           ...formData,
           price: parseFloat(formData.price),
           stockQuantity: parseInt(formData.stockQuantity),
           categoryId: parseInt(formData.categoryId),
         });
+        productId = response.data.id;
+        toast.success('Produto criado com sucesso!');
       }
+
+      // Upload image if one was selected
+      if (imageFile && productId) {
+        setUploadingImage(true);
+        try {
+          await uploadProductImage(productId, imageFile);
+          toast.success('Imagem enviada com sucesso!');
+        } catch (error) {
+          console.error('Erro ao fazer upload da imagem:', error);
+          toast.error('Produto salvo, mas houve erro no upload da imagem');
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       setShowForm(false);
       setEditingId(null);
+      setImageFile(null);
+      setImagePreview(null);
       setFormData({
         sku: '',
         name: '',
@@ -84,7 +110,7 @@ export const Products = () => {
       loadProducts();
     } catch (error) {
       console.error('Erro ao salvar produto:', error);
-      alert('Erro ao salvar produto');
+      toast.error('Erro ao salvar produto');
     }
   };
 
@@ -98,6 +124,8 @@ export const Products = () => {
       stockQuantity: product.stockQuantity.toString(),
       categoryId: product.categoryId.toString(),
     });
+    setImageFile(null);
+    setImagePreview(product.imageUrl || null);
     setShowForm(true);
   };
 
@@ -105,11 +133,39 @@ export const Products = () => {
     if (confirm('Tem certeza que deseja deletar este produto?')) {
       try {
         await api.delete(`/products/${id}`);
+        toast.success('Produto deletado com sucesso!');
         loadProducts();
       } catch (error) {
         console.error('Erro ao deletar produto:', error);
-        alert('Erro ao deletar produto');
+        toast.error('Erro ao deletar produto');
       }
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('A imagem não pode ter mais de 5MB');
+        return;
+      }
+
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('Formato de imagem inválido. Use JPEG, PNG, WebP ou GIF');
+        return;
+      }
+
+      setImageFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -143,6 +199,8 @@ export const Products = () => {
             onClick={() => {
               setShowForm(true);
               setEditingId(null);
+              setImageFile(null);
+              setImagePreview(null);
               setFormData({
                 sku: '',
                 name: '',
@@ -247,12 +305,48 @@ export const Products = () => {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Imagem do Produto</label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      id="image-input"
+                    />
+                    <label
+                      htmlFor="image-input"
+                      className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50"
+                    >
+                      <div className="flex flex-col items-center space-y-2">
+                        <Upload size={20} className="text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {imageFile ? imageFile.name : 'Clique ou arraste a imagem aqui'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Máx 5MB (JPEG, PNG, WebP, GIF)
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <img
+                        src={imagePreview}
+                        alt="Prévia"
+                        className="max-h-40 max-w-full rounded-lg border border-gray-300"
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="flex space-x-3 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                    disabled={uploadingImage}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Salvar
+                    {uploadingImage ? 'Salvando imagem...' : 'Salvar'}
                   </button>
                   <button
                     type="button"

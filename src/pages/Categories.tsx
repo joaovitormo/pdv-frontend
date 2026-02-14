@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import api from '../api/api';
@@ -48,8 +49,10 @@ export const Categories = () => {
     try {
       if (editingId) {
         await api.put(`/categories/${editingId}`, formData);
+        toast.success('Categoria atualizada com sucesso!');
       } else {
         await api.post('/categories', formData);
+        toast.success('Categoria criada com sucesso!');
       }
       setShowForm(false);
       setEditingId(null);
@@ -57,7 +60,7 @@ export const Categories = () => {
       loadCategories();
     } catch (error) {
       console.error('Erro ao salvar categoria:', error);
-      alert('Erro ao salvar categoria');
+      toast.error('Erro ao salvar categoria');
     }
   };
 
@@ -71,10 +74,11 @@ export const Categories = () => {
     if (confirm('Tem certeza que deseja deletar esta categoria?')) {
       try {
         await api.delete(`/categories/${id}`);
+        toast.success('Categoria deletada com sucesso!');
         loadCategories();
       } catch (error) {
         console.error('Erro ao deletar categoria:', error);
-        alert('Erro ao deletar categoria');
+        toast.error('Erro ao deletar categoria');
       }
     }
   };

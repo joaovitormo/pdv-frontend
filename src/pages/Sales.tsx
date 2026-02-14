@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import api from '../api/api';
@@ -55,10 +56,11 @@ export const Sales = () => {
     if (confirm('Tem certeza que deseja cancelar esta venda?')) {
       try {
         await api.post(`/sales/${id}/cancel`);
+        toast.success('Venda cancelada com sucesso!');
         loadSales();
       } catch (error) {
         console.error('Erro ao cancelar venda:', error);
-        alert('Erro ao cancelar venda');
+        toast.error('Erro ao cancelar venda');
       }
     }
   };
@@ -68,9 +70,10 @@ export const Sales = () => {
       const response = await api.get(`/sales/${id}`);
       setSelectedSale(response.data);
       setShowDetail(true);
+      toast.success('Detalhes carregados!');
     } catch (error) {
       console.error('Erro ao carregar detalhes:', error);
-      alert('Erro ao carregar detalhes da venda');
+      toast.error('Erro ao carregar detalhes da venda');
     }
   };
 

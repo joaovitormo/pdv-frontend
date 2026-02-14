@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { AuthContext } from '../contexts/AuthContext';
 
 export const Login: React.FC = () => {
@@ -15,14 +16,18 @@ export const Login: React.FC = () => {
     
     if (!username || !password) {
       setLocalError('Por favor, preencha todos os campos');
+      toast.error('Por favor, preencha todos os campos');
       return;
     }
 
     try {
       await signIn({ username, password });
+      toast.success('Login realizado com sucesso!');
       navigate('/dashboard');
     } catch (err) {
-      setLocalError(error || 'Falha no login. Verifique suas credenciais.');
+      const errorMsg = error || 'Falha no login. Verifique suas credenciais.';
+      setLocalError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
