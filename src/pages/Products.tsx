@@ -5,7 +5,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import { ResponsiveTable } from '../components/ResponsiveTable';
 import api, { uploadProductImage } from '../api/api';
-import { Plus, Edit, Trash2, Search, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Upload, X, AlertCircle } from 'lucide-react';
 import type { Product } from '../types/index';
 
 const ITEMS_PER_PAGE = 10;
@@ -23,6 +23,8 @@ export const Products = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [addingStock, setAddingStock] = useState(false);
+  const [stockToAdd, setStockToAdd] = useState<string>('');
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
@@ -169,6 +171,12 @@ export const Products = () => {
     }
   };
 
+  const getStockStatus = (quantity: number) => {
+    if (quantity === 0) return { label: 'SEM ESTOQUE', color: 'bg-red-100', textColor: 'text-red-800', badgeColor: 'bg-red-500' };
+    if (quantity <= 10) return { label: 'ESTOQUE BAIXO', color: 'bg-yellow-100', textColor: 'text-yellow-800', badgeColor: 'bg-yellow-500' };
+    return { label: 'EM ESTOQUE', color: 'bg-green-100', textColor: 'text-green-800', badgeColor: 'bg-green-500' };
+  };
+
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.sku.toLowerCase().includes(searchTerm.toLowerCase())
@@ -229,131 +237,250 @@ export const Products = () => {
           />
         </div>
 
-        {/* Form Modal */}
+        {/* Form Modal - Novo Design */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-8 w-full max-w-md">
-              <h2 className="text-2xl font-bold mb-6">
-                {editingId ? 'Editar Produto' : 'Novo Produto'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">SKU</label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nome</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Descrição</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Preço</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Estoque</label>
-                    <input
-                      type="number"
-                      value={formData.stockQuantity}
-                      onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Categoria</label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Selecionar categoria</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Imagem do Produto</label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                      id="image-input"
-                    />
-                    <label
-                      htmlFor="image-input"
-                      className="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50"
-                    >
-                      <div className="flex flex-col items-center space-y-2">
-                        <Upload size={20} className="text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {imageFile ? imageFile.name : 'Clique ou arraste a imagem aqui'}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          Máx 5MB (JPEG, PNG, WebP, GIF)
-                        </span>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-lg w-full max-w-5xl my-4 md:my-8">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {editingId ? 'Editar Produto' : 'Novo Produto'}
+                </h2>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column - Product Media */}
+                  <div className="lg:col-span-1 order-2 lg:order-1">
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Mídia do Produto</h3>
+                        <button
+                          type="button"
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                        >
+                          Editar
+                        </button>
                       </div>
-                    </label>
-                  </div>
-                  {imagePreview && (
-                    <div className="mt-4">
-                      <img
-                        src={imagePreview}
-                        alt="Prévia"
-                        className="max-h-40 max-w-full rounded-lg border border-gray-300"
+
+                      {/* Image Preview Area */}
+                      <div className="mb-6">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Prévia"
+                              className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImageFile(null);
+                                setImagePreview(null);
+                              }}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-full h-64 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                            <div className="text-center">
+                              <Upload className="mx-auto text-gray-400 mb-2" size={32} />
+                              <p className="text-gray-500 text-sm">Sem imagem</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Image Upload Input */}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        id="image-input"
                       />
+                      <label
+                        htmlFor="image-input"
+                        className="block w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 text-center"
+                      >
+                        <span className="text-sm text-gray-600 font-medium">
+                          {imageFile ? imageFile.name : 'Escolher imagem'}
+                        </span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-2">Máx 5MB (JPEG, PNG, WebP, GIF)</p>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Right Column - Product Details */}
+                  <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
+                    {/* General Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Informações Gerais</h3>
+                      <p className="text-sm text-gray-600 mb-4">Atualize os detalhes do produto</p>
+
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Código SKU</label>
+                            <input
+                              type="text"
+                              value={formData.sku}
+                              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                              placeholder="NK-AIR-2024-RED"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                            <select
+                              value={formData.categoryId}
+                              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              required
+                            >
+                              <option value="">Selecionar categoria</option>
+                              {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Produto</label>
+                          <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Nike Air Max Precision"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Quantidade Atual</label>
+                            <input
+                              type="number"
+                              value={formData.stockQuantity}
+                              onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                              placeholder="12"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Preço (R$)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={formData.price}
+                              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                              placeholder="129.99"
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                          <textarea
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="Premium leather and mesh upper for breathability and style. Max Air unit provides responsive cushioning, rubber outsole for durable traction."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows={3}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inventory Status */}
+                    {editingId && (
+                      <div className="border-t pt-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Status do Estoque</h3>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-blue-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600 mb-2">Status</p>
+                            {(() => {
+                              const status = getStockStatus(parseInt(formData.stockQuantity) || 0);
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-3 h-3 rounded-full ${status.badgeColor}`}></div>
+                                  <span className={`font-semibold text-sm ${status.textColor}`}>{status.label}</span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          <div className="bg-blue-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600 mb-2">Unidades em Estoque</p>
+                            <p className="text-3xl font-bold text-gray-900">{formData.stockQuantity || 0}</p>
+                          </div>
+                        </div>
+
+                        {/* Add Stock Section */}
+                        <div className="mt-4 bg-blue-50 rounded-lg p-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Estoque</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              value={stockToAdd}
+                              onChange={(e) => setStockToAdd(e.target.value)}
+                              placeholder="Quantidade"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (stockToAdd && parseInt(stockToAdd) > 0) {
+                                  const newQty = (parseInt(formData.stockQuantity) || 0) + parseInt(stockToAdd);
+                                  setFormData({ ...formData, stockQuantity: newQty.toString() });
+                                  setStockToAdd('');
+                                  toast.success('Estoque adicionado!');
+                                }
+                              }}
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
+                            >
+                              Adicionar
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">Ponto de recompra recomendado: 20 unidades</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={uploadingImage}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {uploadingImage ? 'Salvando imagem...' : 'Salvar'}
-                  </button>
+
+                {/* Footer Actions */}
+                <div className="flex gap-3 justify-end mt-8 pt-6 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium"
                   >
                     Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploadingImage}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+                  >
+                    {uploadingImage ? '⏳ Salvando...' : '💾 Salvar Alterações'}
                   </button>
                 </div>
               </form>
