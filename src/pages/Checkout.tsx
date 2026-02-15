@@ -4,7 +4,7 @@ import { Layout } from '../components/Layout';
 import api from '../api/api';
 import type { Product } from '../types/index';
 import { AuthContext } from '../contexts/AuthContext';
-import { Trash2, Edit2, X, ChevronLeft, ChevronRight, Search, ShoppingCart } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, Search, ShoppingCart } from 'lucide-react';
 
 interface CartItem {
   productId: number;
@@ -22,9 +22,6 @@ export const Checkout: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [editingItem, setEditingItem] = useState<number | null>(null);
-  const [editPrice, setEditPrice] = useState<number>(0);
-  const [editDiscount, setEditDiscount] = useState<number>(0);
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<string>('CARTAO');
@@ -107,22 +104,7 @@ export const Checkout: React.FC = () => {
     }
   };
 
-  const startEdit = (item: CartItem) => {
-    setEditingItem(item.productId);
-    setEditPrice(item.unitPrice);
-    setEditDiscount(item.discount || 0);
-  };
 
-  const saveEdit = () => {
-    setCart(cart.map(i => 
-      i.productId === editingItem 
-        ? { ...i, unitPrice: editPrice, discount: editDiscount } 
-        : i
-    ));
-    setEditingItem(null);
-    setEditPrice(0);
-    setEditDiscount(0);
-  };
 
   const handleFinishSale = async () => {
     if (cart.length === 0) {

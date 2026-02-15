@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useContext } from 'react';
 import { Layout } from '../components/Layout';
-import { Package, Layers, Users, ShoppingCart, TrendingUp, AlertCircle, DollarSign } from 'lucide-react';
+import { Package, Layers, Users, ShoppingCart, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../api/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -209,7 +209,7 @@ export const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip formatter={(value) => `R$ ${value.toFixed(2)}`} />
+                <Tooltip formatter={(value: any) => `R$ ${typeof value === 'number' ? value.toFixed(2) : value}`} />
                 <Legend />
                 <Line 
                   type="monotone" 

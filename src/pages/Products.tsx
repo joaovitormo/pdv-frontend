@@ -5,7 +5,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
 import { ResponsiveTable } from '../components/ResponsiveTable';
 import api, { uploadProductImage } from '../api/api';
-import { Plus, Edit, Trash2, Search, Upload, X, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Upload, X } from 'lucide-react';
 import type { Product } from '../types/index';
 
 const ITEMS_PER_PAGE = 10;
@@ -23,7 +23,6 @@ export const Products = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [addingStock, setAddingStock] = useState(false);
   const [stockToAdd, setStockToAdd] = useState<string>('');
   const [formData, setFormData] = useState({
     sku: '',
